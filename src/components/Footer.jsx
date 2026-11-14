@@ -57,15 +57,30 @@ export default function Footer() {
             <ul className="mt-3 space-y-2.5 text-sm">
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <span>Aditya Educational Institutions, Andhra Pradesh, India</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>info@aditya.ac.in</span>
+                <span>
+                  Near APSRTC Complex, Tadithota, Rajamahendravaram (Rajahmundry), Andhra Pradesh 533103
+                </span>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>+91 (0883) 2484828</span>
+                <span>
+                  <a href="tel:+919866076668" className="hover:text-white transition-colors">
+                    98660 76668
+                  </a>
+                  {', '}
+                  <a href="tel:+919000376664" className="hover:text-white transition-colors">
+                    90003 76664
+                  </a>
+                </span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-amber-400 shrink-0" />
+                <a
+                  href="mailto:adcrjy@aditya.ac.in"
+                  className="hover:text-white transition-colors"
+                >
+                  adcrjy@aditya.ac.in
+                </a>
               </li>
               <li className="pt-2">
                 <a
