@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { CollegeDataProvider } from './context/CollegeDataContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import AnnouncementPopup from './components/AnnouncementPopup';
 import Home from './pages/Home';
 import Management from './pages/Management';
 import AcademicYear from './pages/AcademicYear';
@@ -19,6 +20,7 @@ const ADMIN_ROUTE_SLUG =
 function PublicLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
+      <AnnouncementPopup />
       <Navbar />
       <main className="flex-1">
         <Outlet />

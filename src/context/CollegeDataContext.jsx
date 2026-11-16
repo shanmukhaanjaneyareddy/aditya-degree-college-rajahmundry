@@ -11,6 +11,11 @@ const DEFAULT_DATA = {
     title: 'Welcome to Aditya Degree College',
     subtitle: 'Empowering Future Innovators & Leaders through Excellence in Education',
   },
+  announcementPopup: {
+    imageUrl: '',
+    isActive: true,
+    updatedAt: '',
+  },
   topPackagesConfig: {
     mode: 'all_time', // 'all_time' | 'academic_year'
     selectedAcademicYear: '2025-2026',
@@ -39,6 +44,10 @@ const mergeWithDefaults = (raw) => {
       ...DEFAULT_DATA.droneVideo,
       ...(raw.droneVideo || {}),
       url: raw.droneVideo?.url || raw.droneVideoUrl || '',
+    },
+    announcementPopup: {
+      ...DEFAULT_DATA.announcementPopup,
+      ...(raw.announcementPopup || {}),
     },
     topPackagesConfig: {
       ...DEFAULT_DATA.topPackagesConfig,
@@ -69,11 +78,9 @@ export const CollegeDataProvider = ({ children }) => {
     }
   });
 
-  // Always holds the latest synchronous state so rapid back-to-back deletes never lose updates
   const dataRef = useRef(data);
   dataRef.current = data;
 
-  // Serializes Supabase upserts and tracks pending local writes so Realtime echo doesn't overwrite newer local clicks
   const saveQueueRef = useRef(Promise.resolve());
   const pendingWritesRef = useRef(0);
 
@@ -121,7 +128,6 @@ export const CollegeDataProvider = ({ children }) => {
           filter: 'id=eq.1',
         },
         (payload) => {
-          // Ignore stale Realtime echoes while local back-to-back saves are still in flight
           if (pendingWritesRef.current > 0) return;
 
           if (payload.new?.data) {
@@ -147,14 +153,12 @@ export const CollegeDataProvider = ({ children }) => {
     };
   }, [fetchPortalData]);
 
-  // Synchronous state update + sequential Supabase persistence
   const persistNextData = useCallback((updater) => {
     const prev = dataRef.current;
     const computedNext = mergeWithDefaults(
       typeof updater === 'function' ? updater(prev) : { ...prev, ...updater }
     );
 
-    // Update ref & UI immediately so the very next click sees the updated array
     dataRef.current = computedNext;
     setData(computedNext);
 
@@ -193,11 +197,21 @@ export const CollegeDataProvider = ({ children }) => {
     return task;
   }, []);
 
-  // 1. Drone Video & Home Config
+  // 1. Drone Video, Announcement Popup & Home Config
   const updateDroneVideo = (droneVideoUpdates) =>
     persistNextData((prev) => ({
       ...prev,
       droneVideo: { ...prev.droneVideo, ...droneVideoUpdates },
+    }));
+
+  const updateAnnouncementPopup = (popupUpdates) =>
+    persistNextData((prev) => ({
+      ...prev,
+      announcementPopup: {
+        ...prev.announcementPopup,
+        ...popupUpdates,
+        updatedAt: new Date().toISOString(),
+      },
     }));
 
   const updateTopPackagesConfig = (configUpdates) =>
@@ -418,6 +432,7 @@ export const CollegeDataProvider = ({ children }) => {
         isLoading,
         refreshCollegeData: fetchPortalData,
         updateDroneVideo,
+        updateAnnouncementPopup,
         updateTopPackagesConfig,
         updateManagementMember,
         addManagementMember,
