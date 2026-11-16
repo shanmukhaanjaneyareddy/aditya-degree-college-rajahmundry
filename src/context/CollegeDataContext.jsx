@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../config/firebase';
 
 const CollegeDataContext = createContext(null);
@@ -8,7 +8,7 @@ const CACHE_KEY = 'aditya_supabase_portal_cache_v2';
 const DEFAULT_DATA = {
   droneVideo: {
     url: '',
-    title: 'Welcome to Aditya Degree College',
+    title: 'Welcome to Aditya Degree College Rajahmundry',
     subtitle: 'Empowering Future Innovators & Leaders through Excellence in Education',
   },
   announcementPopup: {

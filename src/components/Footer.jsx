@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Phone, Mail, ExternalLink } from 'lucide-react';
 
@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <h3 className="text-white font-bold text-lg tracking-wide">
-              ADITYA DEGREE COLLEGES
+              ADITYA DEGREE COLLEGE RAJAHMUNDRY
             </h3>
             <p className="mt-3 text-sm text-slate-300 leading-relaxed">
               Shaping disciplined, industry-ready graduates through academic rigor,
@@ -98,7 +98,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-white/10 text-center text-xs text-slate-400">
-          © {new Date().getFullYear()} Aditya Degree Colleges. All Rights Reserved.
+          © {new Date().getFullYear()} Aditya Degree College Rajahmundry. All Rights Reserved.
         </div>
       </div>
     </footer>

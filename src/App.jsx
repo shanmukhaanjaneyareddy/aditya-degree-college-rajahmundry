@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CollegeDataProvider } from './context/CollegeDataContext';
 import Navbar from './components/Navbar';
@@ -16,6 +16,16 @@ import AdminPortal from './pages/admin/AdminPortal';
 // Secret Admin URL slug from .env (no link shown anywhere on the public site)
 const ADMIN_ROUTE_SLUG =
   import.meta.env.VITE_ADMIN_ROUTE_SLUG || 'aditya-admin-portal-2026';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
+
+  return null;
+}
 
 function PublicLayout() {
   return (
@@ -35,6 +45,7 @@ export default function App() {
     <AuthProvider>
       <CollegeDataProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
             {/* Public College Portal Routes */}
             <Route element={<PublicLayout />}>

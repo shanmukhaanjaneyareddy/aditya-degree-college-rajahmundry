@@ -10,14 +10,7 @@ export default function AnnouncementPopup() {
   const location = useLocation();
   const popup = data.announcementPopup;
 
-  const [dismissedKey, setDismissedKey] = useState(() => {
-    try {
-      return sessionStorage.getItem('aditya_popup_dismissed_key') || '';
-    } catch {
-      return '';
-    }
-  });
-
+  const [dismissedKey, setDismissedKey] = useState('');
   const [animateIn, setAnimateIn] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -48,11 +41,6 @@ export default function AnnouncementPopup() {
     setTimeout(() => {
       setDismissedKey(currentPopupKey);
       setIsClosing(false);
-      try {
-        sessionStorage.setItem('aditya_popup_dismissed_key', currentPopupKey);
-      } catch {
-        // Ignore storage errors
-      }
     }, 280);
   }, [currentPopupKey, isClosing]);
 

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import { Award, ArrowRight } from 'lucide-react';
 import { useCollegeData } from '../context/CollegeDataContext';
@@ -6,6 +6,14 @@ import { useCollegeData } from '../context/CollegeDataContext';
 export default function DroneVideoHero() {
   const { data } = useCollegeData();
   const { droneVideo } = data;
+
+  const rawTitle = droneVideo?.title?.trim();
+  const heroTitle =
+    !rawTitle ||
+    rawTitle === 'Welcome to Aditya Degree College' ||
+    rawTitle === 'Welcome to Aditya Degree Colleges'
+      ? 'Welcome to Aditya Degree College Rajahmundry'
+      : rawTitle;
 
   return (
     <section className="relative w-full bg-slate-950 overflow-hidden flex items-center justify-center">
@@ -31,11 +39,11 @@ export default function DroneVideoHero() {
       <div className="absolute inset-0 z-10 flex flex-col items-center justify-center max-w-5xl mx-auto px-4 sm:px-6 text-center text-white">
         <span className="inline-flex items-center gap-1.5 px-4 py-1.5 mb-3 sm:mb-4 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs font-bold uppercase tracking-widest">
           <Award className="w-3.5 h-3.5" />
-          Aditya Degree College
+          Aditya Degree College Rajahmundry
         </span>
 
         <h1 className="text-2xl sm:text-5xl md:text-6xl font-extrabold tracking-tight drop-shadow-lg">
-          {droneVideo?.title || 'Welcome to Aditya Degree College'}
+          {heroTitle}
         </h1>
 
         <p className="mt-2 sm:mt-4 text-sm sm:text-xl text-slate-200 max-w-2xl mx-auto drop-shadow">
