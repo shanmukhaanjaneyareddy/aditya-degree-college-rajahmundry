@@ -1,5 +1,6 @@
 ﻿import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../config/firebase';
+import { deleteMediaFromCloud } from '../config/cloudinary';
 
 const CollegeDataContext = createContext(null);
 
@@ -204,8 +205,17 @@ export const CollegeDataProvider = ({ children }) => {
       droneVideo: { ...prev.droneVideo, ...droneVideoUpdates },
     }));
 
-  const updateAnnouncementPopup = (popupUpdates) =>
-    persistNextData((prev) => ({
+  const updateAnnouncementPopup = (popupUpdates) => {
+    const prevUrl = dataRef.current.announcementPopup?.imageUrl;
+    if (
+      prevUrl &&
+      Object.prototype.hasOwnProperty.call(popupUpdates, 'imageUrl') &&
+      popupUpdates.imageUrl !== prevUrl
+    ) {
+      deleteMediaFromCloud(prevUrl);
+    }
+
+    return persistNextData((prev) => ({
       ...prev,
       announcementPopup: {
         ...prev.announcementPopup,
@@ -213,6 +223,7 @@ export const CollegeDataProvider = ({ children }) => {
         updatedAt: new Date().toISOString(),
       },
     }));
+  };
 
   const updateTopPackagesConfig = (configUpdates) =>
     persistNextData((prev) => ({
@@ -221,11 +232,21 @@ export const CollegeDataProvider = ({ children }) => {
     }));
 
   // 2. Management
-  const updateManagementMember = (id, updates) =>
-    persistNextData((prev) => ({
+  const updateManagementMember = (id, updates) => {
+    const target = dataRef.current.management.find((m) => m.id === id);
+    if (
+      target?.photo &&
+      Object.prototype.hasOwnProperty.call(updates, 'photo') &&
+      updates.photo !== target.photo
+    ) {
+      deleteMediaFromCloud(target.photo);
+    }
+
+    return persistNextData((prev) => ({
       ...prev,
       management: prev.management.map((m) => (m.id === id ? { ...m, ...updates } : m)),
     }));
+  };
 
   const addManagementMember = (member) => {
     const newMember = {
@@ -242,11 +263,17 @@ export const CollegeDataProvider = ({ children }) => {
     }));
   };
 
-  const deleteManagementMember = (id) =>
-    persistNextData((prev) => ({
+  const deleteManagementMember = (id) => {
+    const target = dataRef.current.management.find((m) => m.id === id);
+    if (target?.photo) {
+      deleteMediaFromCloud(target.photo);
+    }
+
+    return persistNextData((prev) => ({
       ...prev,
       management: prev.management.filter((m) => m.id !== id),
     }));
+  };
 
   // 3. Academic Years
   const addAcademicYear = (year) => {
@@ -294,25 +321,31 @@ export const CollegeDataProvider = ({ children }) => {
     }));
   };
 
-  const deleteFolder = (folderId) =>
-    persistNextData((prev) => {
-      const idsToDelete = new Set([folderId]);
-      let added = true;
-      while (added) {
-        added = false;
-        for (const f of prev.folders) {
-          if (f.parentId && idsToDelete.has(f.parentId) && !idsToDelete.has(f.id)) {
-            idsToDelete.add(f.id);
-            added = true;
-          }
+  const deleteFolder = (folderId) => {
+    const idsToDelete = new Set([folderId]);
+    let added = true;
+    while (added) {
+      added = false;
+      for (const f of dataRef.current.folders) {
+        if (f.parentId && idsToDelete.has(f.parentId) && !idsToDelete.has(f.id)) {
+          idsToDelete.add(f.id);
+          added = true;
         }
       }
-      return {
-        ...prev,
-        folders: prev.folders.filter((f) => !idsToDelete.has(f.id)),
-        mediaItems: prev.mediaItems.filter((m) => !idsToDelete.has(m.folderId)),
-      };
-    });
+    }
+
+    dataRef.current.mediaItems
+      .filter((m) => idsToDelete.has(m.folderId))
+      .forEach((m) => {
+        if (m.url) deleteMediaFromCloud(m.url);
+      });
+
+    return persistNextData((prev) => ({
+      ...prev,
+      folders: prev.folders.filter((f) => !idsToDelete.has(f.id)),
+      mediaItems: prev.mediaItems.filter((m) => !idsToDelete.has(m.folderId)),
+    }));
+  };
 
   const addMediaItems = (items) => {
     const stamped = items.map((item, idx) => ({
@@ -326,11 +359,17 @@ export const CollegeDataProvider = ({ children }) => {
     }));
   };
 
-  const deleteMediaItem = (mediaId) =>
-    persistNextData((prev) => ({
+  const deleteMediaItem = (mediaId) => {
+    const target = dataRef.current.mediaItems.find((m) => m.id === mediaId);
+    if (target?.url) {
+      deleteMediaFromCloud(target.url);
+    }
+
+    return persistNextData((prev) => ({
       ...prev,
       mediaItems: prev.mediaItems.filter((m) => m.id !== mediaId),
     }));
+  };
 
   // 5. Placements & Placement Years
   const addPlacementYear = (year) => {
@@ -374,17 +413,33 @@ export const CollegeDataProvider = ({ children }) => {
     }));
   };
 
-  const updatePlacementRecord = (id, updates) =>
-    persistNextData((prev) => ({
+  const updatePlacementRecord = (id, updates) => {
+    const target = dataRef.current.placements.find((p) => p.id === id);
+    if (
+      target?.photo &&
+      Object.prototype.hasOwnProperty.call(updates, 'photo') &&
+      updates.photo !== target.photo
+    ) {
+      deleteMediaFromCloud(target.photo);
+    }
+
+    return persistNextData((prev) => ({
       ...prev,
       placements: prev.placements.map((p) => (p.id === id ? { ...p, ...updates } : p)),
     }));
+  };
 
-  const deletePlacementRecord = (id) =>
-    persistNextData((prev) => ({
+  const deletePlacementRecord = (id) => {
+    const target = dataRef.current.placements.find((p) => p.id === id);
+    if (target?.photo) {
+      deleteMediaFromCloud(target.photo);
+    }
+
+    return persistNextData((prev) => ({
       ...prev,
       placements: prev.placements.filter((p) => p.id !== id),
     }));
+  };
 
   const bulkImportPlacements = (records) =>
     persistNextData((prev) => {
