@@ -22,7 +22,7 @@ const TABS = [
   { id: 'management', label: 'Management Team', icon: Users },
   { id: 'academic_years', label: 'Academic Years', icon: Calendar },
   { id: 'activities', label: 'Activities Folders', icon: Sparkles },
-  { id: 'project_expos', label: 'Project Expos', icon: FolderKanban },
+  { id: 'project_expos', label: 'Project Expo', icon: FolderKanban },
   { id: 'placements', label: 'Placements & Top 10', icon: Award },
 ];
 
@@ -104,7 +104,7 @@ export default function AdminDashboard() {
           <ManageFoldersAndMedia
             key="admin_expos"
             section="project_expos"
-            sectionLabel="Project Expos"
+            sectionLabel="Project Expo"
           />
         )}
         {activeTab === 'placements' && <ManagePlacements />}

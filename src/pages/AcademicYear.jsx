@@ -80,7 +80,7 @@ export default function AcademicYear() {
                 Academic Year: <span className="text-amber-400">{currentYear}</span>
               </h1>
               <p className="mt-1 text-sm text-slate-300">
-                Shuffle across academic years to inspect all Activities, Project Expos, and Placements from that session.
+                Shuffle across academic years to inspect all Activities, Project Expo, and Placements from that session.
               </p>
             </div>
 
@@ -170,7 +170,7 @@ export default function AcademicYear() {
                     activeTab === 'project_expos' ? 'text-amber-600' : 'text-amber-400'
                   }`}
                 />
-                <span className="font-bold">Project Expos</span>
+                <span className="font-bold">Project Expo</span>
               </div>
               <span
                 className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
@@ -229,8 +229,8 @@ export default function AcademicYear() {
         <FolderExplorer
           key={`expo_${currentYear}`}
           section="project_expos"
-          title={`Project Expos (${currentYear})`}
-          subtitle={`All technical exhibitions and student project expos held during Academic Year ${currentYear}.`}
+          title={`Project Expo (${currentYear})`}
+          subtitle={`All technical exhibitions and student Project Expo held during Academic Year ${currentYear}.`}
           filterAcademicYear={currentYear}
         />
       )}

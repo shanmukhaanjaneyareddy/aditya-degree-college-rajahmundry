@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { label: 'Management', path: '/management' },
   { label: 'Academic Year', path: '/academic-year' },
   { label: 'Activities', path: '/activities' },
-  { label: 'Project Expos', path: '/project-expos' },
+  { label: 'Project Expo', path: '/project-expos' },
   { label: 'Placements', path: '/placements' },
 ];
 

@@ -39,7 +39,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/project-expos" className="hover:text-white transition-colors">
-                  Project Expos
+                  Project Expo
                 </Link>
               </li>
               <li>
