@@ -7,9 +7,17 @@ import {
   Download,
   Maximize2,
   Calendar,
+  Play,
+  X,
+  ExternalLink,
 } from 'lucide-react';
 import { useCollegeData } from '../context/CollegeDataContext';
 import ImageLightbox from './ImageLightbox';
+import {
+  isYouTubeUrl,
+  getYouTubeThumbnailUrl,
+  getYouTubeEmbedUrl,
+} from '../config/youtube';
 
 export default function FolderExplorer({
   section,
@@ -20,6 +28,7 @@ export default function FolderExplorer({
   const { data } = useCollegeData();
   const [currentFolderId, setCurrentFolderId] = useState(null);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [activeVideoItem, setActiveVideoItem] = useState(null);
 
   const sectionFolders = useMemo(() => {
     return data.folders.filter((f) => {
@@ -29,7 +38,6 @@ export default function FolderExplorer({
     });
   }, [data.folders, section, filterAcademicYear]);
 
-  // Build breadcrumb trail from root down to currentFolderId
   const breadcrumbs = useMemo(() => {
     const trail = [];
     const map = new Map(data.folders.map((f) => [f.id, f]));
@@ -42,17 +50,31 @@ export default function FolderExplorer({
   }, [currentFolderId, data.folders]);
 
   const childFolders = useMemo(() => {
-    return sectionFolders.filter((f) => (f.parentId || null) === currentFolderId);
+    return sectionFolders
+      .filter((f) => (f.parentId || null) === currentFolderId)
+      .sort((a, b) => {
+        const orderA = typeof a.order === 'number' ? a.order : Number.MAX_SAFE_INTEGER;
+        const orderB = typeof b.order === 'number' ? b.order : Number.MAX_SAFE_INTEGER;
+        if (orderA !== orderB) return orderA - orderB;
+        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      });
   }, [sectionFolders, currentFolderId]);
 
-  const currentPhotos = useMemo(() => {
+  const currentItems = useMemo(() => {
     if (!currentFolderId) return [];
     return data.mediaItems
       .filter((m) => m.section === section && m.folderId === currentFolderId)
       .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
   }, [data.mediaItems, section, currentFolderId]);
 
-  // Collect a folder's ID and all of its nested subfolder IDs
+  const imageOnlyItems = useMemo(
+    () =>
+      currentItems.filter(
+        (m) => m.mediaType !== 'video' && !isYouTubeUrl(m.url)
+      ),
+    [currentItems]
+  );
+
   const getDescendantFolderIds = (rootId) => {
     const ids = new Set([rootId]);
     let added = true;
@@ -68,13 +90,11 @@ export default function FolderExplorer({
     return ids;
   };
 
-  // Count total photos across a folder and all its subfolders
   const countItemsRecursive = (folderId) => {
     const ids = getDescendantFolderIds(folderId);
     return data.mediaItems.filter((m) => ids.has(m.folderId)).length;
   };
 
-  // Get the most recently uploaded image across a folder and all its subfolders
   const getLatestCoverUrl = (folderId) => {
     const ids = getDescendantFolderIds(folderId);
     let latestItem = null;
@@ -89,7 +109,10 @@ export default function FolderExplorer({
       }
     }
 
-    return latestItem?.url || null;
+    if (!latestItem) return null;
+    return isYouTubeUrl(latestItem.url)
+      ? getYouTubeThumbnailUrl(latestItem.url)
+      : latestItem.url;
   };
 
   const handleDownload = async (e, url, filename) => {
@@ -122,7 +145,9 @@ export default function FolderExplorer({
         <h1 className="text-3xl sm:text-4xl font-extrabold text-aditya-navy">
           {title}
         </h1>
-        {subtitle && <p className="mt-2 text-slate-600 text-sm sm:text-base">{subtitle}</p>}
+        {subtitle && (
+          <p className="mt-2 text-slate-600 text-sm sm:text-base">{subtitle}</p>
+        )}
       </div>
 
       {/* Breadcrumb Navigation Bar */}
@@ -172,7 +197,7 @@ export default function FolderExplorer({
               const subCount = sectionFolders.filter(
                 (f) => f.parentId === folder.id
               ).length;
-              const totalPhotos = countItemsRecursive(folder.id);
+              const totalItems = countItemsRecursive(folder.id);
               const coverUrl = getLatestCoverUrl(folder.id);
 
               return (
@@ -182,7 +207,6 @@ export default function FolderExplorer({
                   onClick={() => setCurrentFolderId(folder.id)}
                   className="group text-left bg-white rounded-2xl border border-slate-200 hover:border-amber-400 shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col justify-between"
                 >
-                  {/* Folder Cover Preview (Last Uploaded Image in Folder/Subfolders) */}
                   <div className="relative aspect-[16/10] w-full bg-slate-100 overflow-hidden flex items-center justify-center">
                     {coverUrl ? (
                       <img
@@ -197,7 +221,6 @@ export default function FolderExplorer({
                       </div>
                     )}
 
-                    {/* Academic Year Badge */}
                     {folder.academicYear && (
                       <span className="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900/75 backdrop-blur-sm text-white text-xs font-semibold shadow-sm">
                         <Calendar className="w-3 h-3 text-amber-400" />
@@ -205,7 +228,6 @@ export default function FolderExplorer({
                       </span>
                     )}
 
-                    {/* Folder Indicator Badge when Cover Image is Shown */}
                     {coverUrl && (
                       <span className="absolute bottom-2.5 left-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/95 text-aditya-navy text-[11px] font-bold shadow-sm">
                         <Folder className="w-3 h-3" />
@@ -214,14 +236,13 @@ export default function FolderExplorer({
                     )}
                   </div>
 
-                  {/* Folder Title & Counts */}
                   <div className="p-4">
                     <h3 className="font-bold text-slate-900 text-lg group-hover:text-aditya-blue transition-colors line-clamp-1">
                       {folder.name}
                     </h3>
                     <p className="mt-1 text-xs text-slate-500">
                       {subCount > 0 ? `${subCount} Subfolder(s) • ` : ''}
-                      {totalPhotos} Photo(s)
+                      {totalItems} Item(s)
                     </p>
                   </div>
                 </button>
@@ -231,71 +252,118 @@ export default function FolderExplorer({
         </div>
       )}
 
-      {/* Photos Inside Current Folder */}
+      {/* Photos & Videos Inside Current Folder */}
       {currentFolderId && (
         <div>
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">
-            Gallery Photos ({currentPhotos.length})
+            Gallery Media ({currentItems.length})
           </h2>
 
-          {currentPhotos.length === 0 && childFolders.length === 0 ? (
+          {currentItems.length === 0 && childFolders.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
               <ImageIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
               <p className="font-semibold text-slate-700">
-                No photos uploaded in this folder yet.
+                No photos or videos uploaded in this folder yet.
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-              {currentPhotos.map((photo, idx) => (
-                <div
-                  key={photo.id}
-                  onClick={() => setLightboxIndex(idx)}
-                  className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl cursor-pointer transition-all"
-                >
-                  <div className="aspect-[4/3] w-full bg-slate-100 overflow-hidden">
-                    <img
-                      src={photo.url}
-                      alt={photo.caption || activeBreadcrumbTitle}
-                      loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
+              {currentItems.map((item, idx) => {
+                const isVideo =
+                  item.mediaType === 'video' || isYouTubeUrl(item.url);
+                const previewSrc = isYouTubeUrl(item.url)
+                  ? getYouTubeThumbnailUrl(item.url)
+                  : item.url;
 
-                  {/* Hover Action Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-3">
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-white">
-                      <Maximize2 className="w-3.5 h-3.5" />
-                      Preview
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={(e) =>
-                        handleDownload(
-                          e,
-                          photo.url,
-                          `${activeBreadcrumbTitle.replace(/[^a-z0-9]/gi, '_')}_${
-                            idx + 1
-                          }.jpg`
-                        )
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      if (isVideo) {
+                        setActiveVideoItem(item);
+                      } else {
+                        const imgIdx = imageOnlyItems.findIndex(
+                          (img) => img.id === item.id
+                        );
+                        if (imgIdx !== -1) setLightboxIndex(imgIdx);
                       }
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-aditya-navy font-bold text-xs shadow"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      Download
-                    </button>
-                  </div>
-
-                  {photo.caption && (
-                    <div className="p-3 border-t border-slate-100">
-                      <p className="text-xs text-slate-700 line-clamp-2">
-                        {photo.caption}
-                      </p>
+                    }}
+                    className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl cursor-pointer transition-all"
+                  >
+                    <div className="relative aspect-[4/3] w-full bg-slate-100 overflow-hidden">
+                      <img
+                        src={previewSrc}
+                        alt={item.caption || activeBreadcrumbTitle}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {isVideo && (
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                          <span className="p-3.5 rounded-full bg-red-600 text-white shadow-lg group-hover:scale-110 transition-transform">
+                            <Play className="w-6 h-6 fill-current" />
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {/* Hover Action Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-3">
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-white">
+                        {isVideo ? (
+                          <>
+                            <Play className="w-3.5 h-3.5" />
+                            Watch Video
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 className="w-3.5 h-3.5" />
+                            Preview
+                          </>
+                        )}
+                      </span>
+
+                      {isVideo ? (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          YouTube
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) =>
+                            handleDownload(
+                              e,
+                              item.url,
+                              `${activeBreadcrumbTitle.replace(
+                                /[^a-z0-9]/gi,
+                                '_'
+                              )}_${idx + 1}.jpg`
+                            )
+                          }
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-aditya-navy font-bold text-xs shadow"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download
+                        </button>
+                      )}
+                    </div>
+
+                    {item.caption && (
+                      <div className="p-3 border-t border-slate-100">
+                        <p className="text-xs text-slate-700 line-clamp-2">
+                          {item.caption}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -314,14 +382,51 @@ export default function FolderExplorer({
         </div>
       )}
 
-      {/* Lightbox Modal */}
+      {/* Image Lightbox Modal */}
       <ImageLightbox
-        items={currentPhotos}
+        items={imageOnlyItems}
         activeIndex={lightboxIndex}
         onClose={() => setLightboxIndex(null)}
         onNavigate={(nextIdx) => setLightboxIndex(nextIdx)}
         folderTitle={activeBreadcrumbTitle}
       />
+
+      {/* YouTube Video Player Modal */}
+      {activeVideoItem && (
+        <div
+          onClick={() => setActiveVideoItem(null)}
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-4xl bg-slate-950 rounded-2xl overflow-hidden border border-white/15 shadow-2xl"
+          >
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-white/10">
+              <p className="text-sm font-bold text-white truncate pr-4">
+                {activeVideoItem.caption || activeBreadcrumbTitle}
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveVideoItem(null)}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white"
+                aria-label="Close Video"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="aspect-video w-full bg-black">
+              <iframe
+                src={getYouTubeEmbedUrl(activeVideoItem.url, true)}
+                title={activeVideoItem.caption || 'Event Video'}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="w-full h-full border-0"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

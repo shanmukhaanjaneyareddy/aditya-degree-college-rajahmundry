@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Award, ArrowRight } from 'lucide-react';
 import { useCollegeData } from '../context/CollegeDataContext';
@@ -12,7 +12,7 @@ export default function DroneVideoHero() {
     !rawTitle ||
     rawTitle === 'Welcome to Aditya Degree College' ||
     rawTitle === 'Welcome to Aditya Degree Colleges'
-      ? 'Welcome to Aditya Degree College Rajahmundry'
+      ? 'Welcome to Aditya Degree College Rajahmundry Autonomous'
       : rawTitle;
 
   return (
@@ -42,7 +42,7 @@ export default function DroneVideoHero() {
       <div className="relative lg:absolute lg:inset-0 z-10 flex flex-col items-center justify-center max-w-5xl mx-auto px-4 sm:px-6 pt-5 pb-10 sm:pt-7 sm:pb-12 lg:py-0 text-center text-white">
         <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 mb-3 sm:mb-4 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[11px] sm:text-xs font-bold uppercase tracking-widest">
           <Award className="w-3.5 h-3.5 shrink-0" />
-          <span>Aditya Degree College Rajahmundry</span>
+          <span>Aditya Degree College Rajahmundry Autonomous</span>
         </span>
 
         <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight drop-shadow-lg">

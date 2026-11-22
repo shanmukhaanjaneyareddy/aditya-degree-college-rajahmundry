@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { Menu, X, ExternalLink, GraduationCap } from 'lucide-react';
 
@@ -19,17 +19,17 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 bg-aditya-navy text-white shadow-lg border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Top-Left: Aditya Degree College Rajahmundry Logo -> Redirects to Home */}
+          {/* Top-Left: Aditya Degree College Rajahmundry Autonomous Logo -> Redirects to Home */}
           <Link
             to="/"
             onClick={() => setMobileOpen(false)}
             className="flex items-center gap-3 group focus:outline-none"
-            title="Aditya Degree College Rajahmundry — Home"
+            title="Aditya Degree College Rajahmundry Autonomous — Home"
           >
             {!logoError ? (
               <img
                 src="/assets/logo/aditya-logo.png"
-                alt="Aditya Degree College Rajahmundry Logo"
+                alt="Aditya Degree College Rajahmundry Autonomous Logo"
                 onError={() => setLogoError(true)}
                 className="h-12 w-12 object-contain rounded-lg bg-white p-1 shadow-sm group-hover:scale-105 transition-transform"
               />
@@ -43,7 +43,7 @@ export default function Navbar() {
                 ADITYA
               </span>
               <span className="block text-[11px] sm:text-xs font-semibold text-amber-400 tracking-wider uppercase">
-                Degree College Rajahmundry
+                Degree College Rajahmundry Autonomous
               </span>
             </div>
           </Link>

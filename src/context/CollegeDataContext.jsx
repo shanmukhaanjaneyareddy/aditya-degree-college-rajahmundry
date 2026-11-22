@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../config/firebase';
 import { deleteMediaFromCloud } from '../config/cloudinary';
 
@@ -9,7 +9,7 @@ const CACHE_KEY = 'aditya_supabase_portal_cache_v2';
 const DEFAULT_DATA = {
   droneVideo: {
     url: '',
-    title: 'Welcome to Aditya Degree College Rajahmundry',
+    title: 'Welcome to Aditya Degree College Rajahmundry Autonomous',
     subtitle: 'Empowering Future Innovators & Leaders through Excellence in Education',
   },
   announcementPopup: {
@@ -310,14 +310,38 @@ export const CollegeDataProvider = ({ children }) => {
 
   // 4. Folders & Media Items
   const addFolder = (folderObj) => {
-    const newFolder = {
-      id: `folder-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      createdAt: new Date().toISOString(),
-      ...folderObj,
-    };
+    return persistNextData((prev) => {
+      const siblingOrders = prev.folders
+        .filter(
+          (f) =>
+            f.section === folderObj.section &&
+            (f.parentId || null) === (folderObj.parentId || null)
+        )
+        .map((f, idx) => (typeof f.order === 'number' ? f.order : idx));
+      const nextOrder =
+        siblingOrders.length > 0 ? Math.max(...siblingOrders) + 1 : 0;
+
+      const newFolder = {
+        id: `folder-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        createdAt: new Date().toISOString(),
+        order: nextOrder,
+        ...folderObj,
+      };
+
+      return {
+        ...prev,
+        folders: [...prev.folders, newFolder],
+      };
+    });
+  };
+
+  const reorderFolders = (orderedFolderIds) => {
+    const orderMap = new Map(orderedFolderIds.map((id, idx) => [id, idx]));
     return persistNextData((prev) => ({
       ...prev,
-      folders: [...prev.folders, newFolder],
+      folders: prev.folders.map((f) =>
+        orderMap.has(f.id) ? { ...f, order: orderMap.get(f.id) } : f
+      ),
     }));
   };
 
@@ -496,6 +520,7 @@ export const CollegeDataProvider = ({ children }) => {
         editAcademicYear,
         deleteAcademicYear,
         addFolder,
+        reorderFolders,
         deleteFolder,
         addMediaItems,
         deleteMediaItem,

@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Sparkles, Download, FolderOpen } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Download,
+  FolderOpen,
+  Play,
+} from 'lucide-react';
 import { useCollegeData } from '../context/CollegeDataContext';
+import { isYouTubeUrl, getYouTubeThumbnailUrl } from '../config/youtube';
 
-/**
- * Displays up to 4 slides of the most recently uploaded activity photos
- * across distinct folders, formatted as "MainFolder: SubFolder".
- * - If 4+ folders have uploads: 1 latest photo from each of the 4 most recent folders.
- * - If 2 folders have uploads: 2 latest photos from each of the 2 folders (4 slides total).
- * - If 1 folder has uploads: up to 4 latest photos from that folder.
- */
 export default function RecentActivitiesCarousel() {
   const { data } = useCollegeData();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -33,7 +34,6 @@ export default function RecentActivitiesCarousel() {
       return folder.name;
     };
 
-    // Group items by folderId while preserving recency order
     const byFolder = new Map();
     for (const item of activityItems) {
       if (!byFolder.has(item.folderId)) {
@@ -48,7 +48,6 @@ export default function RecentActivitiesCarousel() {
       items,
     }));
 
-    // Round-robin pick across distinct folders up to 4 slides total
     const selected = [];
     let round = 0;
     while (selected.length < 4 && round < 4) {
@@ -129,6 +128,11 @@ export default function RecentActivitiesCarousel() {
   }
 
   const activeSlide = slides[currentIndex] || slides[0];
+  const isVideoSlide =
+    activeSlide.mediaType === 'video' || isYouTubeUrl(activeSlide.url);
+  const slideImageSrc = isYouTubeUrl(activeSlide.url)
+    ? getYouTubeThumbnailUrl(activeSlide.url)
+    : activeSlide.url;
 
   return (
     <section className="bg-slate-900 text-white border-b border-slate-800">
@@ -155,13 +159,12 @@ export default function RecentActivitiesCarousel() {
         <div className="relative rounded-2xl overflow-hidden bg-slate-800 shadow-2xl border border-white/10">
           <div className="relative h-[300px] sm:h-[420px] w-full">
             <img
-              src={activeSlide.url}
+              src={slideImageSrc}
               alt={activeSlide.displayTitle}
               className="w-full h-full object-cover transition-all duration-500"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
 
-            {/* Bottom Overlay with Folder Title (e.g. "NSS: 25 NOV 2026") & Download */}
             <div className="absolute bottom-0 inset-x-0 p-5 sm:p-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-amber-400 mb-1">
@@ -178,23 +181,34 @@ export default function RecentActivitiesCarousel() {
               </div>
 
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleDownload(
-                      activeSlide.url,
-                      `${activeSlide.displayTitle.replace(/[^a-z0-9]/gi, '_')}.jpg`
-                    )
-                  }
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white text-xs sm:text-sm font-semibold transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download Photo</span>
-                </button>
+                {isVideoSlide ? (
+                  <a
+                    href={activeSlide.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs sm:text-sm font-semibold transition-colors"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Watch Video</span>
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleDownload(
+                        activeSlide.url,
+                        `${activeSlide.displayTitle.replace(/[^a-z0-9]/gi, '_')}.jpg`
+                      )
+                    }
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white text-xs sm:text-sm font-semibold transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download Photo</span>
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Prev / Next Controls */}
             {slides.length > 1 && (
               <>
                 <button
@@ -219,7 +233,6 @@ export default function RecentActivitiesCarousel() {
             )}
           </div>
 
-          {/* Slide Dots */}
           {slides.length > 1 && (
             <div className="bg-slate-950/90 px-6 py-3 flex items-center justify-center gap-2">
               {slides.map((s, idx) => (

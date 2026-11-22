@@ -21,7 +21,7 @@ export default function ManageDroneAndHome() {
     setUploading(true);
     setSavedMsg('');
     try {
-      const uploadedUrl = await uploadMediaToCloud(file, 'video');
+      const uploadedUrl = await uploadMediaToCloud(file, 'video', 'supabase');
       setVideoUrl(uploadedUrl);
       updateDroneVideo({ url: uploadedUrl, title, subtitle });
       setSavedMsg('Drone video uploaded and updated on Home page.');
@@ -29,6 +29,7 @@ export default function ManageDroneAndHome() {
       alert('Video upload failed: ' + err.message);
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
