@@ -804,7 +804,7 @@ export default function ManagePlacements() {
                             </span>
                             {rec.fatherName && (
                               <span className="text-xs text-slate-600 block">
-                                S/o D/o: {rec.fatherName}
+                                Son/Daughter of: {rec.fatherName}
                               </span>
                             )}
                             {rec.branch && (

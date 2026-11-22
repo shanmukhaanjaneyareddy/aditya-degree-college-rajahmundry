@@ -176,7 +176,7 @@ export default function Placements() {
                     </h3>
                     {student.fatherName && (
                       <p className="text-xs font-medium text-slate-600 mt-0.5">
-                        S/o D/o: {student.fatherName}
+                        Son/Daughter of: {student.fatherName}
                       </p>
                     )}
                     {student.branch && (

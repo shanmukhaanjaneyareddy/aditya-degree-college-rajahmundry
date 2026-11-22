@@ -284,7 +284,7 @@ export default function AcademicYear() {
                       <h3 className="font-bold text-slate-900">{student.studentName}</h3>
                       {student.fatherName && (
                         <p className="text-xs text-slate-600 mt-0.5">
-                          S/o D/o: {student.fatherName}
+                          Son/Daughter of: {student.fatherName}
                         </p>
                       )}
                       <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-aditya-blue">
