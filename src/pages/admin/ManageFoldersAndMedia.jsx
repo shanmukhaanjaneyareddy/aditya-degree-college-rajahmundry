@@ -12,6 +12,9 @@ import {
   Youtube,
   Plus,
   GripVertical,
+  Edit2,
+  Check,
+  X,
 } from 'lucide-react';
 import { useCollegeData } from '../../context/CollegeDataContext';
 import { uploadMediaToCloud } from '../../config/cloudinary';
@@ -25,9 +28,11 @@ export default function ManageFoldersAndMedia({ section, sectionLabel }) {
   const {
     data,
     addFolder,
+    renameFolder,
     reorderFolders,
     deleteFolder,
     addMediaItems,
+    reorderMediaItems,
     deleteMediaItem,
   } = useCollegeData();
 
@@ -40,9 +45,17 @@ export default function ManageFoldersAndMedia({ section, sectionLabel }) {
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [uploading, setUploading] = useState(false);
 
+  // Inline folder rename state
+  const [renamingFolderId, setRenamingFolderId] = useState(null);
+  const [renameFolderVal, setRenameFolderVal] = useState('');
+
   // Drag-and-drop state for folder reordering
   const [draggedFolderId, setDraggedFolderId] = useState(null);
   const [dragOverFolderId, setDragOverFolderId] = useState(null);
+
+  // Drag-and-drop state for photo/video reordering inside a folder
+  const [draggedMediaId, setDraggedMediaId] = useState(null);
+  const [dragOverMediaId, setDragOverMediaId] = useState(null);
 
   const sectionFolders = useMemo(
     () => data.folders.filter((f) => f.section === section),
@@ -75,7 +88,12 @@ export default function ManageFoldersAndMedia({ section, sectionLabel }) {
     if (!currentFolderId) return [];
     return data.mediaItems
       .filter((m) => m.section === section && m.folderId === currentFolderId)
-      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+      .sort((a, b) => {
+        const orderA = typeof a.order === 'number' ? a.order : Number.MAX_SAFE_INTEGER;
+        const orderB = typeof b.order === 'number' ? b.order : Number.MAX_SAFE_INTEGER;
+        if (orderA !== orderB) return orderA - orderB;
+        return new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0);
+      });
   }, [data.mediaItems, section, currentFolderId]);
 
   const handleCreateFolder = (e) => {
@@ -84,12 +102,13 @@ export default function ManageFoldersAndMedia({ section, sectionLabel }) {
     addFolder({
       section,
       parentId: currentFolderId,
-      name: newFolderName,
+      name: newFolderName.trim(),
       academicYear: selectedAcademicYear,
     });
     setNewFolderName('');
   };
 
+  // Folder Reordering Helpers
   const moveFolderToIndex = (fromIndex, toIndex) => {
     if (
       fromIndex === toIndex ||
@@ -107,6 +126,10 @@ export default function ManageFoldersAndMedia({ section, sectionLabel }) {
   };
 
   const handleFolderDragStart = (e, folderId) => {
+    if (renamingFolderId === folderId) {
+      e.preventDefault();
+      return;
+    }
     setDraggedFolderId(folderId);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', folderId);
@@ -136,6 +159,55 @@ export default function ManageFoldersAndMedia({ section, sectionLabel }) {
   const handleFolderDragEnd = () => {
     setDraggedFolderId(null);
     setDragOverFolderId(null);
+  };
+
+  // Media (Photo/Video) Reordering Helpers
+  const moveMediaToIndex = (fromIndex, toIndex) => {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= folderMedia.length ||
+      toIndex >= folderMedia.length
+    ) {
+      return;
+    }
+    const updated = [...folderMedia];
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
+    reorderMediaItems(updated.map((m) => m.id));
+  };
+
+  const handleMediaDragStart = (e, mediaId) => {
+    setDraggedMediaId(mediaId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', mediaId);
+  };
+
+  const handleMediaDragOver = (e, targetMediaId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverMediaId !== targetMediaId) {
+      setDragOverMediaId(targetMediaId);
+    }
+  };
+
+  const handleMediaDrop = (e, targetMediaId) => {
+    e.preventDefault();
+    const sourceId = draggedMediaId || e.dataTransfer.getData('text/plain');
+    setDraggedMediaId(null);
+    setDragOverMediaId(null);
+
+    if (!sourceId || sourceId === targetMediaId) return;
+
+    const fromIndex = folderMedia.findIndex((m) => m.id === sourceId);
+    const toIndex = folderMedia.findIndex((m) => m.id === targetMediaId);
+    moveMediaToIndex(fromIndex, toIndex);
+  };
+
+  const handleMediaDragEnd = () => {
+    setDraggedMediaId(null);
+    setDragOverMediaId(null);
   };
 
   const handleBulkPhotoUpload = async (e) => {
@@ -267,11 +339,11 @@ export default function ManageFoldersAndMedia({ section, sectionLabel }) {
         </form>
       </div>
 
-      {/* Subfolders List (Drag & Drop Reorderable) */}
+      {/* Subfolders List (Renameable + Drag & Drop Reorderable) */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">
-            Folders ({childFolders.length}) — Click to open, or drag & drop to reorder
+            Folders ({childFolders.length}) — Click to open, rename, or drag & drop to reorder
           </h3>
           {childFolders.length > 1 && (
             <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
@@ -288,11 +360,12 @@ export default function ManageFoldersAndMedia({ section, sectionLabel }) {
               const isDragging = draggedFolderId === folder.id;
               const isDragOver =
                 dragOverFolderId === folder.id && draggedFolderId !== folder.id;
+              const isRenaming = renamingFolderId === folder.id;
 
               return (
                 <div
                   key={folder.id}
-                  draggable
+                  draggable={!isRenaming}
                   onDragStart={(e) => handleFolderDragStart(e, folder.id)}
                   onDragOver={(e) => handleFolderDragOver(e, folder.id)}
                   onDragLeave={() => {
@@ -316,69 +389,127 @@ export default function ManageFoldersAndMedia({ section, sectionLabel }) {
                       <GripVertical className="w-4 h-4" />
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() => setCurrentFolderId(folder.id)}
-                      className="flex items-center gap-3 text-left flex-1 min-w-0"
-                    >
-                      <Folder className="w-6 h-6 text-amber-600 shrink-0" />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 shrink-0">
-                            #{index + 1}
-                          </span>
-                          <p className="font-bold text-slate-900 truncate">
-                            {folder.name}
+                    {isRenaming ? (
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        <input
+                          type="text"
+                          autoFocus
+                          value={renameFolderVal}
+                          onChange={(e) => setRenameFolderVal(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (renameFolderVal.trim()) {
+                                renameFolder(folder.id, renameFolderVal);
+                              }
+                              setRenamingFolderId(null);
+                            } else if (e.key === 'Escape') {
+                              setRenamingFolderId(null);
+                            }
+                          }}
+                          className="px-2.5 py-1 rounded-lg border border-aditya-blue bg-white text-sm font-bold text-slate-900 w-full"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (renameFolderVal.trim()) {
+                              renameFolder(folder.id, renameFolderVal);
+                            }
+                            setRenamingFolderId(null);
+                          }}
+                          className="p-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 shrink-0"
+                          title="Save Folder Name"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRenamingFolderId(null)}
+                          className="p-1.5 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 shrink-0"
+                          title="Cancel"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setCurrentFolderId(folder.id)}
+                        className="flex items-center gap-3 text-left flex-1 min-w-0"
+                      >
+                        <Folder className="w-6 h-6 text-amber-600 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 shrink-0">
+                              #{index + 1}
+                            </span>
+                            <p className="font-bold text-slate-900 truncate">
+                              {folder.name}
+                            </p>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            AY {folder.academicYear}
                           </p>
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          AY {folder.academicYear}
-                        </p>
-                      </div>
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0 ml-2">
-                    {childFolders.length > 1 && (
-                      <>
-                        <button
-                          type="button"
-                          disabled={index === 0}
-                          onClick={() => moveFolderToIndex(index, index - 1)}
-                          className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:pointer-events-none"
-                          title="Move Earlier"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={index === childFolders.length - 1}
-                          onClick={() => moveFolderToIndex(index, index + 1)}
-                          className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:pointer-events-none"
-                          title="Move Later"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </>
+                      </button>
                     )}
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Delete folder "${folder.name}" and all media/subfolders inside it?`
-                          )
-                        ) {
-                          deleteFolder(folder.id);
-                        }
-                      }}
-                      className="p-1.5 rounded-lg text-red-600 hover:bg-red-100"
-                      title="Delete Folder"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
+
+                  {!isRenaming && (
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      {childFolders.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => moveFolderToIndex(index, index - 1)}
+                            className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:pointer-events-none"
+                            title="Move Earlier"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === childFolders.length - 1}
+                            onClick={() => moveFolderToIndex(index, index + 1)}
+                            className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:pointer-events-none"
+                            title="Move Later"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRenamingFolderId(folder.id);
+                          setRenameFolderVal(folder.name);
+                        }}
+                        className="p-1.5 rounded-lg text-aditya-blue hover:bg-blue-100"
+                        title="Rename Folder"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Delete folder "${folder.name}" and all media/subfolders inside it?`
+                            )
+                          ) {
+                            deleteFolder(folder.id);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg text-red-600 hover:bg-red-100"
+                        title="Delete Folder"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -386,18 +517,18 @@ export default function ManageFoldersAndMedia({ section, sectionLabel }) {
         )}
       </div>
 
-      {/* Photos & YouTube Video Adder (Active when inside a folder) */}
+      {/* Photos & YouTube Video Adder + Drag-and-Drop Media Reorder (Active when inside a folder) */}
       {currentFolderId && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
           <div>
             <h3 className="text-base font-extrabold text-aditya-navy flex items-center gap-2">
               <ImageIcon className="w-5 h-5 text-aditya-blue" />
               <span>
-                Add Photos or YouTube Videos to "{breadcrumbs[breadcrumbs.length - 1]?.name}"
+                Add or Reorder Photos & YouTube Videos in "{breadcrumbs[breadcrumbs.length - 1]?.name}"
               </span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Upload photos to Cloudinary or paste a YouTube video link so visitors can watch it directly on the site.
+              Upload photos to Cloudinary, paste a YouTube video link, or drag & drop items below to arrange their display order.
             </p>
           </div>
 
@@ -463,42 +594,110 @@ export default function ManageFoldersAndMedia({ section, sectionLabel }) {
             </button>
           </form>
 
-          {/* Existing Photos & Videos in this Folder */}
+          {/* Existing Photos & Videos in this Folder (Drag & Drop Reorderable) */}
           {folderMedia.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
-              {folderMedia.map((item) => {
-                const isVideo = item.mediaType === 'video' || isYouTubeUrl(item.url);
-                const thumbSrc = isYouTubeUrl(item.url)
-                  ? getYouTubeThumbnailUrl(item.url)
-                  : item.url;
+            <div className="pt-4 border-t border-slate-100 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Gallery Items ({folderMedia.length})
+                </p>
+                {folderMedia.length > 1 && (
+                  <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                    Drag & drop any photo/video card to reorder its position
+                  </span>
+                )}
+              </div>
 
-                return (
-                  <div
-                    key={item.id}
-                    className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-[4/3]"
-                  >
-                    <img
-                      src={thumbSrc}
-                      alt={item.caption || 'Event media'}
-                      className="w-full h-full object-cover"
-                    />
-                    {isVideo && (
-                      <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-600 text-white text-[11px] font-bold shadow">
-                        <Play className="w-3 h-3 fill-current" />
-                        YouTube Video
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => deleteMediaItem(item.id)}
-                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600 text-white opacity-90 hover:opacity-100 shadow"
-                      title="Remove Item"
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {folderMedia.map((item, idx) => {
+                  const isVideo = item.mediaType === 'video' || isYouTubeUrl(item.url);
+                  const thumbSrc = isYouTubeUrl(item.url)
+                    ? getYouTubeThumbnailUrl(item.url)
+                    : item.url;
+                  const isDragging = draggedMediaId === item.id;
+                  const isDragOver =
+                    dragOverMediaId === item.id && draggedMediaId !== item.id;
+
+                  return (
+                    <div
+                      key={item.id}
+                      draggable
+                      onDragStart={(e) => handleMediaDragStart(e, item.id)}
+                      onDragOver={(e) => handleMediaDragOver(e, item.id)}
+                      onDragLeave={() => {
+                        if (dragOverMediaId === item.id) setDragOverMediaId(null);
+                      }}
+                      onDrop={(e) => handleMediaDrop(e, item.id)}
+                      onDragEnd={handleMediaDragEnd}
+                      className={`relative group rounded-xl overflow-hidden border bg-slate-100 aspect-[4/3] cursor-grab active:cursor-grabbing transition-all select-none ${
+                        isDragging
+                          ? 'opacity-45 border-amber-500 scale-[0.97]'
+                          : isDragOver
+                          ? 'border-2 border-dashed border-aditya-blue ring-2 ring-aditya-blue/30 scale-[1.02]'
+                          : 'border-slate-200 hover:border-amber-400'
+                      }`}
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                );
-              })}
+                      <img
+                        src={thumbSrc}
+                        alt={item.caption || 'Event media'}
+                        className="w-full h-full object-cover pointer-events-none"
+                      />
+
+                      {/* Position Badge & Drag Handle */}
+                      <div className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-900/80 text-white text-[11px] font-bold shadow">
+                        <GripVertical className="w-3 h-3 text-amber-400" />
+                        <span>#{idx + 1}</span>
+                      </div>
+
+                      {isVideo && (
+                        <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-600 text-white text-[11px] font-bold shadow">
+                          <Play className="w-3 h-3 fill-current" />
+                          YouTube Video
+                        </span>
+                      )}
+
+                      {/* Bottom-Right Quick Move Arrows */}
+                      {folderMedia.length > 1 && (
+                        <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-slate-900/80 rounded-md p-0.5 shadow">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveMediaToIndex(idx, idx - 1);
+                            }}
+                            className="p-1 text-white hover:text-amber-400 disabled:opacity-30"
+                            title="Move Earlier"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === folderMedia.length - 1}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveMediaToIndex(idx, idx + 1);
+                            }}
+                            className="p-1 text-white hover:text-amber-400 disabled:opacity-30"
+                            title="Move Later"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => deleteMediaItem(item.id)}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600 text-white opacity-90 hover:opacity-100 shadow"
+                        title="Remove Item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

@@ -335,6 +335,17 @@ export const CollegeDataProvider = ({ children }) => {
     });
   };
 
+  const renameFolder = (folderId, newName) => {
+    const trimmed = String(newName || '').trim();
+    if (!trimmed) return;
+    return persistNextData((prev) => ({
+      ...prev,
+      folders: prev.folders.map((f) =>
+        f.id === folderId ? { ...f, name: trimmed } : f
+      ),
+    }));
+  };
+
   const reorderFolders = (orderedFolderIds) => {
     const orderMap = new Map(orderedFolderIds.map((id, idx) => [id, idx]));
     return persistNextData((prev) => ({
@@ -372,14 +383,44 @@ export const CollegeDataProvider = ({ children }) => {
   };
 
   const addMediaItems = (items) => {
-    const stamped = items.map((item, idx) => ({
-      id: `media-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
-      uploadedAt: new Date().toISOString(),
-      ...item,
-    }));
+    return persistNextData((prev) => {
+      const targetFolderIds = new Set(items.map((i) => i.folderId));
+      const minOrderByFolder = new Map();
+
+      targetFolderIds.forEach((fId) => {
+        const existingOrders = prev.mediaItems
+          .filter((m) => m.folderId === fId)
+          .map((m, idx) => (typeof m.order === 'number' ? m.order : idx));
+        minOrderByFolder.set(
+          fId,
+          existingOrders.length > 0 ? Math.min(...existingOrders) : 0
+        );
+      });
+
+      const stamped = items.map((item, idx) => {
+        const baseMin = minOrderByFolder.get(item.folderId) ?? 0;
+        return {
+          id: `media-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
+          uploadedAt: new Date().toISOString(),
+          order: baseMin - items.length + idx,
+          ...item,
+        };
+      });
+
+      return {
+        ...prev,
+        mediaItems: [...stamped, ...prev.mediaItems],
+      };
+    });
+  };
+
+  const reorderMediaItems = (orderedMediaIds) => {
+    const orderMap = new Map(orderedMediaIds.map((id, idx) => [id, idx]));
     return persistNextData((prev) => ({
       ...prev,
-      mediaItems: [...stamped, ...prev.mediaItems],
+      mediaItems: prev.mediaItems.map((m) =>
+        orderMap.has(m.id) ? { ...m, order: orderMap.get(m.id) } : m
+      ),
     }));
   };
 
@@ -486,6 +527,8 @@ export const CollegeDataProvider = ({ children }) => {
           id: `plc-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
           createdAt: new Date().toISOString(),
           studentName: rec.studentName || '',
+          fatherName: rec.fatherName || '',
+          gmail: rec.gmail || '',
           company: rec.company || '',
           packageLpa: rec.packageLpa ?? '',
           branch: rec.branch || '',
@@ -520,9 +563,11 @@ export const CollegeDataProvider = ({ children }) => {
         editAcademicYear,
         deleteAcademicYear,
         addFolder,
+        renameFolder,
         reorderFolders,
         deleteFolder,
         addMediaItems,
+        reorderMediaItems,
         deleteMediaItem,
         addPlacementYear,
         editPlacementYear,

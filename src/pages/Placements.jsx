@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Award, Building2, Search, UserCheck, Briefcase } from 'lucide-react';
+import { Award, Building2, Search, UserCheck, Briefcase, Mail } from 'lucide-react';
 import { useCollegeData } from '../context/CollegeDataContext';
 
 const parsePackageNumber = (val) => {
@@ -36,6 +36,8 @@ export default function Placements() {
         const q = searchTerm.toLowerCase();
         return (
           String(p.studentName || '').toLowerCase().includes(q) ||
+          String(p.fatherName || '').toLowerCase().includes(q) ||
+          String(p.gmail || '').toLowerCase().includes(q) ||
           String(p.company || '').toLowerCase().includes(q) ||
           String(p.branch || '').toLowerCase().includes(q)
         );
@@ -172,6 +174,11 @@ export default function Placements() {
                     <h3 className="text-lg font-bold text-slate-900">
                       {student.studentName || 'Student'}
                     </h3>
+                    {student.fatherName && (
+                      <p className="text-xs font-medium text-slate-600 mt-0.5">
+                        S/o D/o: {student.fatherName}
+                      </p>
+                    )}
                     {student.branch && (
                       <p className="text-xs font-medium text-slate-500 mt-0.5">
                         {student.branch}
@@ -182,6 +189,15 @@ export default function Placements() {
                         <Building2 className="w-4 h-4 text-amber-600 shrink-0" />
                         <span>{student.company}</span>
                       </div>
+                    )}
+                    {student.gmail && (
+                      <a
+                        href={`mailto:${student.gmail}`}
+                        className="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-aditya-blue break-all"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>{student.gmail}</span>
+                      </a>
                     )}
                   </div>
 

@@ -17,8 +17,20 @@ import {
 import { useCollegeData } from '../../context/CollegeDataContext';
 import { uploadMediaToCloud } from '../../config/cloudinary';
 
-const EXPECTED_HEADERS = [
+const LEGACY_HEADERS = [
   'name',
+  'company name',
+  'package',
+  'course/branch',
+  'placement year',
+  'academic year',
+  'photo id',
+];
+
+const EXTENDED_HEADERS = [
+  'name',
+  'father name',
+  'gmail id',
   'company name',
   'package',
   'course/branch',
@@ -67,10 +79,12 @@ export default function ManagePlacements() {
 
   // Bulk Excel/CSV import state
   const fileInputRef = useRef(null);
-  const [importStatus, setImportStatus] = useState(null); // { type: 'success' | 'error', message: string }
+  const [importStatus, setImportStatus] = useState(null);
 
   // New student form state
   const [studentName, setStudentName] = useState('');
+  const [fatherName, setFatherName] = useState('');
+  const [gmail, setGmail] = useState('');
   const [branch, setBranch] = useState('');
   const [company, setCompany] = useState('');
   const [packageLpa, setPackageLpa] = useState('');
@@ -121,8 +135,8 @@ export default function ManagePlacements() {
 
   const handleDownloadTemplate = () => {
     const csvContent =
-      'name,company name,package,course/branch,placement year,academic year,photo id\n' +
-      'K. Sai Charan,TCS Digital,12.5,B.Sc Artificial Intelligence,2026,2025-2026,23241A0501\n';
+      'name,father name,gmail id,company name,package,course/branch,placement year,academic year,photo id\n' +
+      'K. Sai Charan,K. Srinivas,saicharan@gmail.com,TCS Digital,12.5,B.Sc Artificial Intelligence,2026,2025-2026,23241A0501\n';
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -153,7 +167,6 @@ export default function ManagePlacements() {
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
 
-      // Read as 2D array so we can strictly verify exact column order & names
       const rows = XLSX.utils.sheet_to_json(worksheet, {
         header: 1,
         defval: '',
@@ -168,19 +181,23 @@ export default function ManagePlacements() {
         return;
       }
 
-      const fileHeaders = rows[0]
-        .slice(0, EXPECTED_HEADERS.length)
-        .map(normalizeHeader);
+      const rawHeaders = rows[0].map(normalizeHeader);
+      while (rawHeaders.length > 0 && rawHeaders[rawHeaders.length - 1] === '') {
+        rawHeaders.pop();
+      }
 
-      const isValidStructure =
-        EXPECTED_HEADERS.every((expected, i) => fileHeaders[i] === expected) &&
-        rows[0].slice(EXPECTED_HEADERS.length).every((extra) => String(extra || '').trim() === '');
+      const matchesExtended =
+        rawHeaders.length === EXTENDED_HEADERS.length &&
+        EXTENDED_HEADERS.every((h, i) => rawHeaders[i] === h);
+      const matchesLegacy =
+        rawHeaders.length === LEGACY_HEADERS.length &&
+        LEGACY_HEADERS.every((h, i) => rawHeaders[i] === h);
 
-      if (!isValidStructure) {
+      if (!matchesExtended && !matchesLegacy) {
         setImportStatus({
           type: 'error',
           message:
-            'Invalid column structure. File columns must be in this exact order: name, company name, package, course/branch, placement year, academic year, photo id',
+            'Invalid column structure. Columns must be: name, father name, gmail id, company name, package, course/branch, placement year, academic year, photo id (or the 7-column format without father name & gmail id).',
         });
         return;
       }
@@ -198,6 +215,34 @@ export default function ManagePlacements() {
       }
 
       const parsedRecords = dataRows.map((row) => {
+        if (matchesExtended) {
+          const rawName = String(row[0] ?? '').trim();
+          const rawFatherName = String(row[1] ?? '').trim();
+          const rawGmail = String(row[2] ?? '').trim();
+          const rawCompany = String(row[3] ?? '').trim();
+          const rawPkg = String(row[4] ?? '').trim();
+          const rawBranch = String(row[5] ?? '').trim();
+          const rawPlacementYear = String(row[6] ?? '').trim();
+          const rawAcademicYear = String(row[7] ?? '').trim();
+          const rawPhotoId = String(row[8] ?? '').trim();
+
+          const numericPkg =
+            rawPkg !== '' && !Number.isNaN(Number(rawPkg)) ? Number(rawPkg) : rawPkg;
+
+          return {
+            studentName: rawName,
+            fatherName: rawFatherName,
+            gmail: rawGmail,
+            company: rawCompany,
+            packageLpa: numericPkg,
+            branch: rawBranch,
+            placementYear: rawPlacementYear,
+            academicYear: rawAcademicYear,
+            photoId: rawPhotoId,
+            photo: buildStudentPhotoUrl(rawPhotoId),
+          };
+        }
+
         const rawName = String(row[0] ?? '').trim();
         const rawCompany = String(row[1] ?? '').trim();
         const rawPkg = String(row[2] ?? '').trim();
@@ -211,6 +256,8 @@ export default function ManagePlacements() {
 
         return {
           studentName: rawName,
+          fatherName: '',
+          gmail: '',
           company: rawCompany,
           packageLpa: numericPkg,
           branch: rawBranch,
@@ -274,18 +321,28 @@ export default function ManagePlacements() {
 
   const handleAddStudent = (e) => {
     e.preventDefault();
-    if (!studentName.trim() || !company.trim() || !packageLpa) return;
+    if (!studentName.trim() || !company.trim()) return;
+    const trimmedPkg = String(packageLpa ?? '').trim();
+    const parsedPkg =
+      trimmedPkg !== '' && !Number.isNaN(Number(trimmedPkg))
+        ? Number(trimmedPkg)
+        : '';
+
     addPlacementRecord({
       studentName: studentName.trim(),
+      fatherName: fatherName.trim(),
+      gmail: gmail.trim(),
       branch: branch.trim(),
       company: company.trim(),
-      packageLpa: Number(packageLpa),
+      packageLpa: parsedPkg,
       placementYear,
       academicYear,
       photoId: photoId.trim(),
       photo: resolvedPhotoUrl,
     });
     setStudentName('');
+    setFatherName('');
+    setGmail('');
     setBranch('');
     setCompany('');
     setPackageLpa('');
@@ -404,11 +461,11 @@ export default function ManagePlacements() {
         </div>
 
         <p className="text-xs text-slate-600">
-          Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file with columns in this exact structure:{' '}
+          Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file with columns:{' '}
           <code className="px-2 py-0.5 rounded bg-slate-100 text-aditya-navy font-semibold">
-            name, company name, package, course/branch, placement year, academic year, photo id
+            name, father name, gmail id, company name, package, course/branch, placement year, academic year, photo id
           </code>
-          . New placement years or academic years in the file will be created automatically, and any blank cells will remain blank.
+          . Optional fields (father name, gmail id, package, photo id) can be left blank.
         </p>
 
         <div className="flex flex-wrap items-center gap-4">
@@ -448,7 +505,7 @@ export default function ManagePlacements() {
         <div className="flex items-center gap-2 mb-5">
           <Award className="w-5 h-5 text-amber-600" />
           <h2 className="text-lg font-extrabold text-aditya-navy">
-            Add Placed Student & Package
+            Add Placed Student & Details
           </h2>
         </div>
 
@@ -469,6 +526,32 @@ export default function ManagePlacements() {
 
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1">
+              Father's Name (Optional)
+            </label>
+            <input
+              type="text"
+              value={fatherName}
+              onChange={(e) => setFatherName(e.target.value)}
+              placeholder="e.g. K. Srinivas"
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-600 mb-1">
+              Gmail ID (Optional)
+            </label>
+            <input
+              type="email"
+              value={gmail}
+              onChange={(e) => setGmail(e.target.value)}
+              placeholder="e.g. student@gmail.com"
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-600 mb-1">
               Company Name *
             </label>
             <input
@@ -483,15 +566,14 @@ export default function ManagePlacements() {
 
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1">
-              Package (in LPA) *
+              Package in LPA (Optional)
             </label>
             <input
               type="number"
               step="0.01"
-              required
               value={packageLpa}
               onChange={(e) => setPackageLpa(e.target.value)}
-              placeholder="e.g. 12.5"
+              placeholder="e.g. 12.5 (leave blank if N/A)"
               className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
             />
           </div>
@@ -543,11 +625,11 @@ export default function ManagePlacements() {
             </select>
           </div>
 
-          {/* Both Photo Options: Enter Photo ID OR Upload Photo */}
+          {/* Photo ID OR Photo Upload */}
           <div className="md:col-span-2 flex flex-col sm:flex-row sm:items-end gap-3">
             <div className="flex-1">
               <label className="block text-xs font-bold text-slate-600 mb-1">
-                Student Photo ID
+                Student Photo ID (Optional)
               </label>
               <input
                 type="text"
@@ -614,7 +696,7 @@ export default function ManagePlacements() {
         </form>
       </div>
 
-      {/* 4. All Placed Students Table (Editable) */}
+      {/* 4. All Placed Students Table (Fully Editable) */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
         <h3 className="text-base font-extrabold text-aditya-navy mb-4">
           All Placement Records ({data.placements.length})
@@ -626,7 +708,7 @@ export default function ManagePlacements() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-xs uppercase text-slate-500">
-                <th className="py-3 px-3">Student</th>
+                <th className="py-3 px-3">Student & Details</th>
                 <th className="py-3 px-3">Company</th>
                 <th className="py-3 px-3">Package (LPA)</th>
                 <th className="py-3 px-3">Year / AY</th>
@@ -637,27 +719,54 @@ export default function ManagePlacements() {
               {data.placements.map((rec) => {
                 const isEditing = editingStudentId === rec.id;
                 return (
-                  <tr key={rec.id} className="hover:bg-slate-50">
+                  <tr key={rec.id} className="hover:bg-slate-50 align-top">
                     <td className="py-3 px-3">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-start gap-3">
                         {(isEditing ? editForm.photo : rec.photo) ? (
                           <img
                             src={isEditing ? editForm.photo : rec.photo}
                             alt={rec.studentName}
-                            className="w-9 h-9 rounded-full object-cover shrink-0"
+                            className="w-9 h-9 rounded-full object-cover shrink-0 mt-0.5"
                           />
                         ) : (
-                          <UserCheck className="w-8 h-8 text-slate-300 shrink-0" />
+                          <UserCheck className="w-8 h-8 text-slate-300 shrink-0 mt-0.5" />
                         )}
                         {isEditing ? (
-                          <div className="flex flex-col gap-1.5">
+                          <div className="flex flex-col gap-1.5 min-w-[200px]">
                             <input
                               type="text"
-                              value={editForm.studentName}
+                              value={editForm.studentName || ''}
                               onChange={(e) =>
                                 setEditForm({ ...editForm, studentName: e.target.value })
                               }
-                              placeholder="Name"
+                              placeholder="Student Name *"
+                              className="px-2 py-1 border rounded text-xs font-semibold"
+                            />
+                            <input
+                              type="text"
+                              value={editForm.fatherName || ''}
+                              onChange={(e) =>
+                                setEditForm({ ...editForm, fatherName: e.target.value })
+                              }
+                              placeholder="Father's Name (Optional)"
+                              className="px-2 py-1 border rounded text-xs"
+                            />
+                            <input
+                              type="email"
+                              value={editForm.gmail || ''}
+                              onChange={(e) =>
+                                setEditForm({ ...editForm, gmail: e.target.value })
+                              }
+                              placeholder="Gmail ID (Optional)"
+                              className="px-2 py-1 border rounded text-xs"
+                            />
+                            <input
+                              type="text"
+                              value={editForm.branch || ''}
+                              onChange={(e) =>
+                                setEditForm({ ...editForm, branch: e.target.value })
+                              }
+                              placeholder="Course / Branch"
                               className="px-2 py-1 border rounded text-xs"
                             />
                             <div className="flex items-center gap-1.5">
@@ -693,9 +802,19 @@ export default function ManagePlacements() {
                             <span className="font-bold text-slate-900 block">
                               {rec.studentName || '—'}
                             </span>
+                            {rec.fatherName && (
+                              <span className="text-xs text-slate-600 block">
+                                S/o D/o: {rec.fatherName}
+                              </span>
+                            )}
                             {rec.branch && (
-                              <span className="text-xs text-slate-500">
+                              <span className="text-xs text-slate-500 block">
                                 {rec.branch}
+                              </span>
+                            )}
+                            {rec.gmail && (
+                              <span className="text-[11px] text-aditya-blue block">
+                                {rec.gmail}
                               </span>
                             )}
                           </div>
@@ -707,10 +826,11 @@ export default function ManagePlacements() {
                       {isEditing ? (
                         <input
                           type="text"
-                          value={editForm.company}
+                          value={editForm.company || ''}
                           onChange={(e) =>
                             setEditForm({ ...editForm, company: e.target.value })
                           }
+                          placeholder="Company Name *"
                           className="px-2 py-1 border rounded text-xs"
                         />
                       ) : (
@@ -723,11 +843,12 @@ export default function ManagePlacements() {
                         <input
                           type="number"
                           step="0.01"
-                          value={editForm.packageLpa}
+                          value={editForm.packageLpa ?? ''}
                           onChange={(e) =>
                             setEditForm({ ...editForm, packageLpa: e.target.value })
                           }
-                          className="w-20 px-2 py-1 border rounded text-xs"
+                          placeholder="Optional"
+                          className="w-24 px-2 py-1 border rounded text-xs"
                         />
                       ) : rec.packageLpa !== '' && rec.packageLpa != null ? (
                         `₹${rec.packageLpa} LPA`
@@ -737,22 +858,60 @@ export default function ManagePlacements() {
                     </td>
 
                     <td className="py-3 px-3 text-xs text-slate-600">
-                      {rec.placementYear || '—'} • AY {rec.academicYear || '—'}
+                      {isEditing ? (
+                        <div className="flex flex-col gap-1.5">
+                          <select
+                            value={editForm.placementYear || ''}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, placementYear: e.target.value })
+                            }
+                            className="px-2 py-1 border rounded text-xs font-semibold"
+                          >
+                            {data.placementYears.map((yr) => (
+                              <option key={yr} value={yr}>
+                                {yr}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={editForm.academicYear || ''}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, academicYear: e.target.value })
+                            }
+                            className="px-2 py-1 border rounded text-xs font-semibold"
+                          >
+                            {data.academicYears.map((ay) => (
+                              <option key={ay} value={ay}>
+                                AY {ay}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <>
+                          {rec.placementYear || '—'} • AY {rec.academicYear || '—'}
+                        </>
+                      )}
                     </td>
 
-                    <td className="py-3 px-3 text-right space-x-2">
+                    <td className="py-3 px-3 text-right space-x-2 whitespace-nowrap">
                       {isEditing ? (
                         <>
                           <button
                             type="button"
                             onClick={() => {
+                              const rawPkg = String(editForm.packageLpa ?? '').trim();
                               updatePlacementRecord(rec.id, {
                                 ...editForm,
+                                studentName: String(editForm.studentName || '').trim(),
+                                fatherName: String(editForm.fatherName || '').trim(),
+                                gmail: String(editForm.gmail || '').trim(),
+                                company: String(editForm.company || '').trim(),
+                                branch: String(editForm.branch || '').trim(),
                                 packageLpa:
-                                  editForm.packageLpa !== '' &&
-                                  !Number.isNaN(Number(editForm.packageLpa))
-                                    ? Number(editForm.packageLpa)
-                                    : editForm.packageLpa,
+                                  rawPkg !== '' && !Number.isNaN(Number(rawPkg))
+                                    ? Number(rawPkg)
+                                    : '',
                               });
                               setEditingStudentId(null);
                             }}
@@ -776,6 +935,8 @@ export default function ManagePlacements() {
                               setEditingStudentId(rec.id);
                               setEditForm({
                                 ...rec,
+                                fatherName: rec.fatherName || '',
+                                gmail: rec.gmail || '',
                                 photoId: rec.photoId ?? extractPhotoIdFromUrl(rec.photo),
                               });
                             }}
