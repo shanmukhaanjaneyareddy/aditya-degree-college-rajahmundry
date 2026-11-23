@@ -149,7 +149,7 @@ export default function Placements() {
                 key={student.id || `${student.studentName}-${idx}`}
                 className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col"
               >
-                <div className="relative h-56 w-full bg-slate-100 flex items-center justify-center overflow-hidden">
+                <div className="relative aspect-[4/5] sm:aspect-auto sm:h-60 w-full bg-slate-100 flex items-center justify-center overflow-hidden">
                   {student.photo ? (
                     <img
                       src={student.photo}
@@ -157,7 +157,7 @@ export default function Placements() {
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
                       }}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-top"
                     />
                   ) : (
                     <UserCheck className="w-16 h-16 text-slate-300" />

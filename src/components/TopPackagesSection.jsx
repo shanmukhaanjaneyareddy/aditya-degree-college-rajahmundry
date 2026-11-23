@@ -121,21 +121,21 @@ export default function TopPackagesSection() {
                     </div>
                   )}
 
-                  {/* Student Photo */}
-                  <div className="h-52 w-full bg-slate-100 overflow-hidden flex items-center justify-center">
-                    {student.photo ? (
-                      <img
-                        src={student.photo}
-                        alt={student.studentName || 'Placed Student'}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <UserCheck className="w-16 h-16 text-slate-300" />
-                    )}
-                  </div>
+{/* Student Photo */}
+<div className="aspect-[4/5] sm:aspect-auto sm:h-56 w-full bg-slate-100 overflow-hidden flex items-center justify-center">
+  {student.photo ? (
+    <img
+      src={student.photo}
+      alt={student.studentName || 'Placed Student'}
+      onError={(e) => {
+        e.currentTarget.style.display = 'none';
+      }}
+      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+    />
+  ) : (
+    <UserCheck className="w-16 h-16 text-slate-300" />
+  )}
+</div>
 
                   {/* Details */}
                   <div className="p-4 flex-1 flex flex-col justify-between">

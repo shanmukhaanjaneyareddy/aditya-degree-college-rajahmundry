@@ -263,12 +263,12 @@ export default function AcademicYear() {
                     key={student.id}
                     className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col"
                   >
-                    <div className="relative h-52 w-full bg-slate-100 flex items-center justify-center overflow-hidden">
+                    <div className="relative aspect-[4/5] sm:aspect-auto sm:h-56 w-full bg-slate-100 flex items-center justify-center overflow-hidden">
                       {student.photo ? (
                         <img
                           src={student.photo}
                           alt={student.studentName}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover object-top"
                         />
                       ) : (
                         <UserCheck className="w-16 h-16 text-slate-300" />

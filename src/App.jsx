@@ -11,6 +11,7 @@ import AcademicYear from './pages/AcademicYear';
 import Activities from './pages/Activities';
 import ProjectExpos from './pages/ProjectExpos';
 import Placements from './pages/Placements';
+import AboutDevelopmentTeam from './pages/AboutDevelopmentTeam';
 import AdminPortal from './pages/admin/AdminPortal';
 
 // Secret Admin URL slug from .env (no link shown anywhere on the public site)
@@ -55,6 +56,7 @@ export default function App() {
               <Route path="/activities" element={<Activities />} />
               <Route path="/project-expos" element={<ProjectExpos />} />
               <Route path="/placements" element={<Placements />} />
+              <Route path="/about-development-team" element={<AboutDevelopmentTeam />} />
             </Route>
 
             {/* Hidden Admin Control Route (No public login button on site) */}

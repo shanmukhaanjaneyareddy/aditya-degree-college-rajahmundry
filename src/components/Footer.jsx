@@ -52,7 +52,7 @@ export default function Footer() {
 
           <div>
             <h4 className="text-amber-400 font-semibold text-sm uppercase tracking-wider">
-              Campus Contact & Portal
+              Campus Contact &amp; Portal
             </h4>
             <ul className="mt-3 space-y-2.5 text-sm">
               <li className="flex items-start gap-2">
@@ -98,7 +98,17 @@ export default function Footer() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-white/10 text-center text-xs text-slate-400">
-          © {new Date().getFullYear()} ADITYA DEGREE COLLEGE RAJAHMUNDRY AUTONOMOUS. All Rights Reserved.
+          <p>
+            &copy; {new Date().getFullYear()} ADITYA DEGREE COLLEGE RAJAHMUNDRY AUTONOMOUS. All Rights Reserved.
+          </p>
+          <div className="mt-2">
+            <Link
+              to="/about-development-team"
+              className="text-slate-400 hover:text-amber-400 transition-colors underline underline-offset-4"
+            >
+              About Development Team
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
