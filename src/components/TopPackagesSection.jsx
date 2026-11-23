@@ -23,7 +23,7 @@ export default function TopPackagesSection() {
   const { data } = useCollegeData();
   const { placements, topPackagesConfig } = data;
 
-  const topTenStudents = useMemo(() => {
+  const topStudents = useMemo(() => {
     let filtered = [...placements];
 
     if (
@@ -36,15 +36,30 @@ export default function TopPackagesSection() {
       );
     }
 
-    return filtered
-      .sort((a, b) => parsePackageNumber(b.packageLpa) - parsePackageNumber(a.packageLpa))
-      .slice(0, 10);
+    const sorted = filtered.sort(
+      (a, b) => parsePackageNumber(b.packageLpa) - parsePackageNumber(a.packageLpa)
+    );
+
+    if (sorted.length <= 10) return sorted;
+
+    // Include everyone in the top 10 PLUS all students tied with the 10th student's LPA
+    const cutoffPackage = parsePackageNumber(sorted[9].packageLpa);
+    return sorted.filter(
+      (student, idx) => idx < 10 || parsePackageNumber(student.packageLpa) === cutoffPackage
+    );
   }, [placements, topPackagesConfig]);
+
+  // Hide #1, #2... rank badges if all displayed students have the same package
+  const allSamePackage = useMemo(() => {
+    if (topStudents.length <= 1) return true;
+    const firstPkg = parsePackageNumber(topStudents[0].packageLpa);
+    return topStudents.every((s) => parsePackageNumber(s.packageLpa) === firstPkg);
+  }, [topStudents]);
 
   const headingBadge =
     topPackagesConfig.mode === 'academic_year'
-      ? `Academic Year ${topPackagesConfig.selectedAcademicYear} — Top 10 Packages`
-      : 'All-Time Top 10 Highest Packages';
+      ? `Academic Year ${topPackagesConfig.selectedAcademicYear} — Highest Package`
+      : 'Highest Package';
 
   return (
     <section className="py-14 bg-slate-50">
@@ -72,30 +87,32 @@ export default function TopPackagesSection() {
           </Link>
         </div>
 
-        {topTenStudents.length === 0 ? (
+        {topStudents.length === 0 ? (
           <div className="rounded-2xl bg-white border border-slate-200 p-10 text-center shadow-sm">
             <Trophy className="w-12 h-12 text-amber-500 mx-auto mb-3" />
             <h3 className="text-lg font-bold text-slate-800">
               No Placement Records Added Yet
             </h3>
             <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
-              Once placement records are added in the Admin Portal, the Top 10 highest
+              Once placement records are added in the Admin Portal, the highest
               package achievers will automatically be showcased here.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-            {topTenStudents.map((student, idx) => {
+            {topStudents.map((student, idx) => {
               const pkgVal = parsePackageNumber(student.packageLpa);
               return (
                 <div
                   key={student.id || `${student.studentName}-${idx}`}
                   className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all overflow-hidden flex flex-col"
                 >
-                  {/* Rank Badge */}
-                  <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full bg-aditya-navy text-amber-400 text-xs font-extrabold shadow">
-                    #{idx + 1}
-                  </div>
+                  {/* Rank Badge (shown only when packages differ) */}
+                  {!allSamePackage && (
+                    <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full bg-aditya-navy text-amber-400 text-xs font-extrabold shadow">
+                      #{idx + 1}
+                    </div>
+                  )}
 
                   {/* Package Pill */}
                   {pkgVal > 0 && (
