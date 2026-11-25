@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { Menu, X, ExternalLink, GraduationCap } from 'lucide-react';
+import { Menu, X, GraduationCap } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Home', path: '/' },
@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { label: 'Activities', path: '/activities' },
   { label: 'Project Expo', path: '/project-expos' },
   { label: 'Placements', path: '/placements' },
+  { label: 'About Development Team', path: '/about-development-team' },
 ];
 
 export default function Navbar() {
@@ -23,7 +24,7 @@ export default function Navbar() {
           <Link
             to="/"
             onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 group focus:outline-none"
+            className="flex items-center gap-3 group focus:outline-none shrink-0"
             title="Aditya Degree College Rajahmundry Autonomous — Home"
           >
             {!logoError ? (
@@ -48,7 +49,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Center Navigation Links (No Admin Login link shown publicly) */}
+          {/* Right Navigation Links (No Admin or Student Login links shown) */}
           <nav className="hidden lg:flex items-center gap-1">
             {NAV_ITEMS.map((item) => (
               <NavLink
@@ -56,7 +57,7 @@ export default function Navbar() {
                 to={item.path}
                 end={item.path === '/'}
                 className={({ isActive }) =>
-                  `px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  `px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                     isActive
                       ? 'bg-aditya-accent text-aditya-navy font-semibold shadow-sm'
                       : 'text-slate-200 hover:text-white hover:bg-white/10'
@@ -67,19 +68,6 @@ export default function Navbar() {
               </NavLink>
             ))}
           </nav>
-
-          {/* Top-Right: External Student Login Button */}
-          <div className="hidden sm:flex items-center gap-3">
-            <a
-              href="https://analysis.aditya.ac.in/v23/student/#/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-aditya-navy font-bold text-sm shadow-md transition-all"
-            >
-              <span>Student Login</span>
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
 
           {/* Mobile Menu Toggle */}
           <button
@@ -113,17 +101,6 @@ export default function Navbar() {
               {item.label}
             </NavLink>
           ))}
-          <div className="pt-2 border-t border-white/10">
-            <a
-              href="https://analysis.aditya.ac.in/v23/student/#/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 text-aditya-navy font-bold text-sm"
-            >
-              <span>Student Login</span>
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
         </div>
       )}
     </header>

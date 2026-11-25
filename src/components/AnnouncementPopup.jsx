@@ -1,92 +1,48 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useCollegeData } from '../context/CollegeDataContext';
 
-const ADMIN_SLUG = import.meta.env.VITE_ADMIN_ROUTE_SLUG || 'aditya-admin-portal-2026';
-
 export default function AnnouncementPopup() {
-  const { data, isLoading } = useCollegeData();
-  const location = useLocation();
-  const popup = data.announcementPopup;
+  const { data } = useCollegeData();
+  const popup = data?.announcementPopup || {};
+  const [dismissed, setDismissed] = useState(false);
 
-  const [dismissedKey, setDismissedKey] = useState('');
-  const [animateIn, setAnimateIn] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
+  const isActive = Boolean(
+    popup.enabled ?? popup.active ?? popup.isActive ?? popup.show ?? false
+  );
 
-  const isAdminRoute = location.pathname.includes(ADMIN_SLUG);
-  const currentPopupKey = `${popup?.imageUrl || ''}::${popup?.updatedAt || ''}`;
-
-  const shouldRender =
-    !isLoading &&
-    !isAdminRoute &&
-    Boolean(popup?.isActive) &&
-    Boolean(popup?.imageUrl) &&
-    (dismissedKey !== currentPopupKey || isClosing);
-
-  // Trigger smooth entrance animation once mounted
-  useEffect(() => {
-    if (!shouldRender || isClosing) return;
-    const frame = requestAnimationFrame(() => {
-      setAnimateIn(true);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [shouldRender, isClosing]);
-
-  const handleClose = useCallback(() => {
-    if (isClosing) return;
-    setIsClosing(true);
-    setAnimateIn(false);
-
-    setTimeout(() => {
-      setDismissedKey(currentPopupKey);
-      setIsClosing(false);
-    }, 280);
-  }, [currentPopupKey, isClosing]);
+  const imageSrc = popup.image || popup.imageUrl || popup.photo || popup.poster || '';
 
   useEffect(() => {
-    if (!shouldRender) return;
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') handleClose();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [shouldRender, handleClose]);
+    setDismissed(false);
+  }, [isActive, imageSrc]);
 
-  if (!shouldRender) return null;
+  if (!isActive || !imageSrc || dismissed) return null;
 
   return (
     <div
-      onClick={handleClose}
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ease-out ${
-        animateIn
-          ? 'bg-black/75 backdrop-blur-sm opacity-100'
-          : 'bg-black/0 backdrop-blur-none opacity-0'
-      }`}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4"
       role="dialog"
       aria-modal="true"
+      onClick={() => setDismissed(true)}
     >
       <div
+        className="relative z-[101] inline-block max-w-[92vw] max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
-        className={`relative max-w-2xl w-auto max-h-[90vh] flex items-center justify-center transition-all duration-300 ease-out ${
-          animateIn
-            ? 'opacity-100 scale-100 translate-y-0'
-            : 'opacity-0 scale-90 translate-y-4'
-        }`}
       >
         <button
           type="button"
-          onClick={handleClose}
-          aria-label="Close popup"
-          className="absolute -top-3 -right-3 z-10 w-9 h-9 rounded-full bg-white text-slate-900 hover:bg-amber-400 hover:rotate-90 shadow-lg flex items-center justify-center transition-all duration-200 cursor-pointer"
+          onClick={() => setDismissed(true)}
+          aria-label="Close"
+          className="absolute top-2.5 right-2.5 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full bg-black/45 hover:bg-black/70 text-white transition-colors cursor-pointer"
         >
-          <X className="w-5 h-5" />
+          <X className="w-5 h-5 stroke-[2.5]" />
         </button>
 
         <img
-          src={popup.imageUrl}
-          alt=""
-          className="max-h-[85vh] max-w-full w-auto h-auto rounded-2xl shadow-2xl object-contain"
+          src={imageSrc}
+          alt="Popup"
+          className="block max-w-[92vw] max-h-[90vh] w-auto h-auto object-contain rounded-xl shadow-2xl"
         />
       </div>
     </div>
