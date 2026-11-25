@@ -17,14 +17,14 @@ export default function Navbar() {
   const [logoError, setLogoError] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-aditya-navy text-white shadow-lg border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+    <header className="sticky top-0 z-50 w-full bg-aditya-navy text-white shadow-lg border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-2 h-20">
           {/* Top-Left: Aditya Degree College Rajahmundry Autonomous Logo -> Redirects to Home */}
           <Link
             to="/"
             onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 group focus:outline-none shrink-0"
+            className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 group focus:outline-none"
             title="Aditya Degree College Rajahmundry Autonomous — Home"
           >
             {!logoError ? (
@@ -32,25 +32,25 @@ export default function Navbar() {
                 src="/assets/logo/aditya-logo.png"
                 alt="Aditya Degree College Rajahmundry Autonomous Logo"
                 onError={() => setLogoError(true)}
-                className="h-12 w-12 object-contain rounded-lg bg-white p-1 shadow-sm group-hover:scale-105 transition-transform"
+                className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 object-contain rounded-lg bg-white p-1 shadow-sm group-hover:scale-105 transition-transform"
               />
             ) : (
-              <div className="h-12 w-12 rounded-lg bg-aditya-accent text-aditya-navy flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-                <GraduationCap className="w-7 h-7" />
+              <div className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-lg bg-aditya-accent text-aditya-navy flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                <GraduationCap className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
             )}
-            <div className="leading-tight">
-              <span className="block text-base sm:text-lg font-extrabold tracking-wide text-white">
+            <div className="min-w-0 leading-tight">
+              <span className="block text-sm sm:text-lg font-extrabold tracking-wide text-white truncate">
                 ADITYA
               </span>
-              <span className="block text-[11px] sm:text-xs font-semibold text-amber-400 tracking-wider uppercase">
+              <span className="block text-[9.5px] sm:text-xs font-semibold text-amber-400 tracking-tight sm:tracking-wider uppercase leading-snug">
                 Degree College Rajahmundry Autonomous
               </span>
             </div>
           </Link>
 
           {/* Right Navigation Links (No Admin or Student Login links shown) */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1 shrink-0">
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.path}
@@ -73,7 +73,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => setMobileOpen((prev) => !prev)}
-            className="lg:hidden p-2 rounded-lg text-slate-200 hover:bg-white/10 focus:outline-none"
+            className="lg:hidden shrink-0 p-2 rounded-lg text-slate-200 hover:bg-white/10 focus:outline-none"
             aria-label="Toggle Menu"
           >
             {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
