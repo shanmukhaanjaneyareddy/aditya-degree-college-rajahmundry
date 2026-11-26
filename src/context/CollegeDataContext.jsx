@@ -6,6 +6,83 @@ const CollegeDataContext = createContext(null);
 
 const CACHE_KEY = 'aditya_supabase_portal_cache_v2';
 
+const DEFAULT_DEVELOPMENT_TEAM = {
+  faculty: [
+    {
+      id: 'fac-saroja',
+      name: 'P. SAROJA',
+      role: 'Project Advisor',
+      department: 'Principal',
+      college: 'Aditya Degree College, Rajahmundry Autonomous',
+      initials: 'PS',
+      photo: '/faculty-saroja.jpg',
+      message: '',
+    },
+    {
+      id: 'fac-manikanta',
+      name: 'P. MANIKANTA',
+      role: 'Project Guide',
+      department: 'Computer Science Faculty',
+      college: 'Aditya Degree College, Rajahmundry Autonomous',
+      initials: 'PM',
+      photo: '/faculty-manikanta.png',
+      message: '',
+    },
+  ],
+  students: [
+    {
+      id: 'stu-shanmukh',
+      name: 'SHANMUKH NALLAMILLI',
+      role: 'Team Lead & Database/Deployment',
+      section: 'B.Sc-AIR-A',
+      college: 'Aditya Degree College, Rajahmundry Autonomous',
+      initials: 'SN',
+      photo: '/shanmukh.jpg',
+      portfolioUrl: '',
+    },
+    {
+      id: 'stu-hariram',
+      name: 'K.S.V. HARIRAM',
+      role: 'Admin Dashboard & Folder Controls',
+      section: 'B.Sc-AIR-A',
+      college: 'Aditya Degree College, Rajahmundry Autonomous',
+      initials: 'KH',
+      photo: '/hariram.jpg',
+      portfolioUrl: '',
+    },
+    {
+      id: 'stu-karthikeya',
+      name: 'V.S.G. KARTHIKEYA',
+      role: 'Public Website & UI Design',
+      section: 'B.Sc-CS-A',
+      college: 'Aditya Degree College, Rajahmundry Autonomous',
+      initials: 'VK',
+      photo: '/karthikeya.jpg',
+      portfolioUrl: '',
+    },
+    {
+      id: 'stu-nandini',
+      name: 'P. NANDINI',
+      role: 'Gallery & YouTube Integration',
+      section: 'B.Sc-CS-A',
+      college: 'Aditya Degree College, Rajahmundry Autonomous',
+      initials: 'PN',
+      photo: '/nandini.jpg',
+      portfolioUrl: '',
+    },
+    {
+      id: 'stu-jainulabdin',
+      name: 'Sd. JAINULABDIN',
+      role: 'Placements & Bulk Data Upload',
+      section: 'B.Sc-CS-A',
+      college: 'Aditya Degree College, Rajahmundry Autonomous',
+      initials: 'SJ',
+      photo: '/jainulabdin.jpg',
+      portfolioUrl: '',
+    },
+  ],
+};
+
 const DEFAULT_DATA = {
   droneVideo: {
     url: '',
@@ -29,11 +106,35 @@ const DEFAULT_DATA = {
     { id: 'mgmt-5', role: 'Principal', name: 'Dr. B. E. V. L. Naidu', qualification: '', message: '', photo: '' },
     { id: 'mgmt-6', role: 'Vice Principal', name: 'Vice Principal', qualification: '', message: '', photo: '' },
   ],
+  developmentTeam: DEFAULT_DEVELOPMENT_TEAM,
   academicYears: ['2025-2026', '2024-2025', '2023-2024'],
   placementYears: ['2026', '2025', '2024'],
   folders: [],
   mediaItems: [],
   placements: [],
+};
+
+const mergeDevelopmentTeam = (rawTeam) => {
+  const savedFaculty = Array.isArray(rawTeam?.faculty) ? rawTeam.faculty : [];
+  const savedStudents = Array.isArray(rawTeam?.students) ? rawTeam.students : [];
+
+  return {
+    faculty: DEFAULT_DEVELOPMENT_TEAM.faculty.map((def) => {
+      const match = savedFaculty.find((f) => f.id === def.id || f.name === def.name);
+      return {
+        ...def,
+        message: typeof match?.message === 'string' ? match.message : def.message,
+      };
+    }),
+    students: DEFAULT_DEVELOPMENT_TEAM.students.map((def) => {
+      const match = savedStudents.find((s) => s.id === def.id || s.name === def.name);
+      return {
+        ...def,
+        portfolioUrl:
+          typeof match?.portfolioUrl === 'string' ? match.portfolioUrl : def.portfolioUrl,
+      };
+    }),
+  };
 };
 
 const mergeWithDefaults = (raw) => {
@@ -57,6 +158,7 @@ const mergeWithDefaults = (raw) => {
     management: Array.isArray(raw.management)
       ? raw.management
       : DEFAULT_DATA.management,
+    developmentTeam: mergeDevelopmentTeam(raw.developmentTeam),
     academicYears: Array.isArray(raw.academicYears)
       ? raw.academicYears
       : DEFAULT_DATA.academicYears,
@@ -274,6 +376,29 @@ export const CollegeDataProvider = ({ children }) => {
       management: prev.management.filter((m) => m.id !== id),
     }));
   };
+
+  // 2b. Development Team (Fixed members: Faculty message only, Student portfolioUrl only)
+  const updateFacultyMentorMessage = (id, message) =>
+    persistNextData((prev) => ({
+      ...prev,
+      developmentTeam: {
+        ...prev.developmentTeam,
+        faculty: prev.developmentTeam.faculty.map((f) =>
+          f.id === id ? { ...f, message: String(message ?? '').trim() } : f
+        ),
+      },
+    }));
+
+  const updateStudentPortfolioUrl = (id, portfolioUrl) =>
+    persistNextData((prev) => ({
+      ...prev,
+      developmentTeam: {
+        ...prev.developmentTeam,
+        students: prev.developmentTeam.students.map((s) =>
+          s.id === id ? { ...s, portfolioUrl: String(portfolioUrl ?? '').trim() } : s
+        ),
+      },
+    }));
 
   // 3. Academic Years
   const addAcademicYear = (year) => {
@@ -559,6 +684,8 @@ export const CollegeDataProvider = ({ children }) => {
         updateManagementMember,
         addManagementMember,
         deleteManagementMember,
+        updateFacultyMentorMessage,
+        updateStudentPortfolioUrl,
         addAcademicYear,
         editAcademicYear,
         deleteAcademicYear,

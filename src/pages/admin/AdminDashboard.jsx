@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Video,
   Users,
+  Code2,
   Calendar,
   Sparkles,
   FolderKanban,
@@ -13,6 +14,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import ManageDroneAndHome from './ManageDroneAndHome';
 import ManageManagement from './ManageManagement';
+import ManageDevelopmentTeam from './ManageDevelopmentTeam';
 import ManageAcademicYears from './ManageAcademicYears';
 import ManageFoldersAndMedia from './ManageFoldersAndMedia';
 import ManagePlacements from './ManagePlacements';
@@ -20,6 +22,7 @@ import ManagePlacements from './ManagePlacements';
 const TABS = [
   { id: 'home', label: 'Home & Drone Video', icon: Video },
   { id: 'management', label: 'Management Team', icon: Users },
+  { id: 'development_team', label: 'Development Team', icon: Code2 },
   { id: 'academic_years', label: 'Academic Years', icon: Calendar },
   { id: 'activities', label: 'Activities Folders', icon: Sparkles },
   { id: 'project_expos', label: 'Project Expo', icon: FolderKanban },
@@ -92,6 +95,7 @@ export default function AdminDashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'home' && <ManageDroneAndHome />}
         {activeTab === 'management' && <ManageManagement />}
+        {activeTab === 'development_team' && <ManageDevelopmentTeam />}
         {activeTab === 'academic_years' && <ManageAcademicYears />}
         {activeTab === 'activities' && (
           <ManageFoldersAndMedia
