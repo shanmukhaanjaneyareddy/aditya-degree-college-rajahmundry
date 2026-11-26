@@ -40,12 +40,27 @@ const normalizeUrl = (url) => {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 };
 
+const formatMentorDisplay = (mentor) => {
+  if (!mentor) return mentor;
+  const isSaroja =
+    mentor.id === 'fac-saroja' ||
+    /p\.?\s*saroja/i.test(mentor.name || '');
+  if (isSaroja) {
+    return {
+      ...mentor,
+      name: 'P. LAKSHMI SAROJA',
+      initials: 'PLS',
+    };
+  }
+  return mentor;
+};
+
 export default function AboutDevelopmentTeam() {
   const { data } = useCollegeData();
   const [selectedMentor, setSelectedMentor] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const facultyMentors = data?.developmentTeam?.faculty || [];
+  const facultyMentors = (data?.developmentTeam?.faculty || []).map(formatMentorDisplay);
   const teamMembers = data?.developmentTeam?.students || [];
 
   const openMentorPopup = (mentor) => {
